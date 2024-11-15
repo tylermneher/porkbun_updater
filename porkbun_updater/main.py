@@ -3,7 +3,7 @@ from pprint import pprint
 from typing import Union, Dict
 import click
 import requests
-import orjson as json
+import json
 
 PORKBUN_API_URL = "https://api.porkbun.com/api/json/v3/"
 
@@ -14,7 +14,7 @@ config_filename = config_dir / '.porkbun_updater_config.json'
 
 def save_config_file(file_path: Path, data: Dict):
     """Helper function to save configuration files."""
-    file_path.write_text(json.dumps(data).decode('utf8'))
+    file_path.write_text(json.dumps(data))
 
 
 @click.group()
