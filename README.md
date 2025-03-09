@@ -1,10 +1,21 @@
 # porkbun_updater
-- Clone the repo
-- Install deps `pdm install` or `pip install requests click`
-- Run config `python porkbun_updater/main.py config`
-- install a crontab with a command like `python porkbun_updater/main.py set-dns-record-by-type --record-type A`
-click auto help
+ This repo provides a command line tool to interact with porkbun dns api to update the dns records of a domain.
+ 
+# Installation
+The repo uses pdm for dependency management
+Install pdm
 ```
+pip install pdm
+```
+Then install deps and/or create a venv
+```
+pdm install
+```
+
+# Usage
+The tool provides the following commands
+```bash
+python3 porkbun_updater/main.py
 Usage: main.py [OPTIONS] COMMAND [ARGS]...
 
   Porkbun DNS Updater CLI
@@ -18,4 +29,12 @@ Commands:
   get-host-public-ip      Retrieve the host's public IP address.
   get-records             Retrieve DNS records by type.
   set-dns-record-by-type  Set or update a DNS record by type.
+```
+Setup the credentials:
+```bash
+python3 porkbun_updater/main.py config
+```
+Update your crontab with something like
+```bash
+*/5 * * * * source $(pdm venv activate) && python porkbun_updater/porkbun_updater/main.py set-dns-record-by-type --record-type A
 ```
