@@ -6,6 +6,13 @@ import click
 import requests
 import json
 
+import re
+
+ipv4_pattern = re.compile(r'^((25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})$')
+
+def is_valid_ipv4(ip):
+    return bool(ipv4_pattern.match(ip))
+
 PORKBUN_API_URL = "https://api.porkbun.com/api/json/v3/"
 
 config_dir = Path(__file__).parent
@@ -101,6 +108,8 @@ def make_ip_address_request():
         auth_response = make_api_request('ping')
         if 'yourIp' in auth_response:
             ip = auth_response['yourIp']
+            if not is_valid_ipv4(ip):
+                raise ValueError(f"Invalid IP address: {ip}")
             logging.info(f"Public IP (via Porkbun): {ip}")
             click.echo(f"Public IP (via Porkbun): {ip}")
             return ip
@@ -109,7 +118,7 @@ def make_ip_address_request():
         click.echo("Failed to retrieve IP from Porkbun API.")
 
     try:
-        response = requests.get("https://ifconfig.me", timeout=5)
+        response = requests.get("https://api.ipify.org", timeout=5)
         response.raise_for_status()
         ip = response.text.strip()
         logging.info(f"Public IP (via fallback): {ip}")
