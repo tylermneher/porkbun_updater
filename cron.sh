@@ -21,10 +21,10 @@ cd "$HOME/porkbun_updater" || exit 1
 VENV_PYTHON=$(pdm info --python)
 
 # Log start
-echo "[$(date)] Starting DNS update" >> "$HOME/porkbun_updater/cron.log"
+echo "[$(date)] Starting DNS update" > "$HOME/porkbun_updater/cron.log"
 
 # Run the script directly with venv python
-"$VENV_PYTHON" porkbun_updater/main.py set-dns-record-by-type --record-type A >> "$HOME/porkbun_updater/cron.log" 2>> "$HOME/porkbun_updater/cron.err.log"
+"$VENV_PYTHON" porkbun_updater/main.py set-dns-record-by-type --record-type A
 
 # Log end
 echo "[$(date)] DNS update finished" >> "$HOME/porkbun_updater/cron.log"

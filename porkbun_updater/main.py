@@ -5,6 +5,8 @@ from typing import Union, Dict
 import click
 import requests
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 
 import re
 
@@ -21,8 +23,8 @@ config_filename = config_dir / '.porkbun_updater_config.json'
 
 # Configure logging
 log_filename = config_dir / 'porkbun_updater.log'
-logging.basicConfig(filename=log_filename, level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+log_handler = RotatingFileHandler(filename=log_filename, maxBytes=1024*1024, backupCount=0)
+logging.basicConfig(handlers=[log_handler], level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def save_config_file(file_path: Path, data: Dict):
     """Helper function to save configuration files."""
@@ -73,7 +75,6 @@ def make_api_request(uri: str, request_body: Union[Dict, None] = None, verbose=F
     else:
         request_body = auth
     try:
-        click.echo(json.dumps(request_body))
         response = requests.post(url, data=json.dumps(request_body))
         response.raise_for_status()
         if response.text:
@@ -131,12 +132,11 @@ def make_ip_address_request():
         exit(1)
 
 @click.command()
-@click.option('--record-type', default='A', prompt='Record Type (e.g., A, CNAME)')
 @click.option('--domain', default=lambda: get_domain_info())
 @click.option('--sub-domain', default=None, help="Subdomain to filter records (optional).")
-def get_records(record_type, domain, sub_domain):
+def get_records(domain, sub_domain):
     """Retrieve DNS records by type."""
-    uri = f'dns/retrieveByNameType/{domain}/{record_type}'
+    uri = f'dns/retrieve/{domain}'
     if sub_domain:
         uri += f"/{sub_domain}"
     records = make_api_request(uri)
@@ -168,7 +168,7 @@ def set_dns_record_by_type(record_type, domain, sub_domain, ip_address, ttl, dry
     name = sub_domain if sub_domain else domain
 
     # check if there is a record set for the domain
-    uri = f'dns/retrieveByNameType/{domain}/{record_type}'
+    uri = f'dns/retrieve/{domain}'
     if sub_domain:
         uri += f"/{sub_domain}"
     records = make_api_request(uri)
@@ -184,18 +184,21 @@ def set_dns_record_by_type(record_type, domain, sub_domain, ip_address, ttl, dry
                         logging.info(f"Record already set to '{record['content']}', updating to '{ip_address}'.")
                         click.echo(f"Record already set to '{record['content']}', updating to '{ip_address}'.")
                         uri = f'dns/edit/{domain}/{record["id"]}'
-                        request_body = {"content": ip_address, "ttl": int(ttl), "type": record_type, "name": name}
+                        request_body = {"content": ip_address, "ttl": int(ttl), "type": record_type}
+                        if sub_domain:
+                            request_body['name'] = sub_domain
                         make_api_request(uri, request_body, verbose=True)
                         logging.info(f"Updated '{domain}' '{name}' '{record_type}' record to '{ip_address}' with TTL {ttl}.")
                         return
 
 
     uri = f'dns/create/{domain}'
-    request_body = {"content": ip_address, "ttl": int(ttl), "type": record_type, 'name': domain}
+    request_body = {"content": ip_address, "ttl": int(ttl), "type": record_type}
     if sub_domain:
         request_body['name'] = sub_domain
     make_api_request(uri, request_body, verbose=True)
-    logging.info(f"Updated '{domain}' '{record_type}' record to '{ip_address}' with TTL {ttl}.")
+    logging.info(f"Created '{domain}' '{name}' '{record_type}' record to '{ip_address}' with TTL {ttl}.")
+    click.echo(f"Created '{domain}' '{name}' '{record_type}' record to '{ip_address}' with TTL {ttl}.")
 
 cli.add_command(config)
 cli.add_command(check_auth)
