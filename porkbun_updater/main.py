@@ -13,7 +13,7 @@ ipv4_pattern = re.compile(r'^((25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\.){3}(25[0-5]|2
 def is_valid_ipv4(ip):
     return bool(ipv4_pattern.match(ip))
 
-PORKBUN_API_URL = "https://api.porkbun.com/api/json/v3/"
+PORKBUN_API_URL = "https://api-ipv4.porkbun.com/api/json/v3/"
 
 config_dir = Path(__file__).parent
 key_filename = config_dir / '.porkbun_updater_api_keys.json'
@@ -73,6 +73,7 @@ def make_api_request(uri: str, request_body: Union[Dict, None] = None, verbose=F
     else:
         request_body = auth
     try:
+        click.echo(json.dumps(request_body))
         response = requests.post(url, data=json.dumps(request_body))
         response.raise_for_status()
         if response.text:
@@ -163,10 +164,36 @@ def set_dns_record_by_type(record_type, domain, sub_domain, ip_address, ttl, dry
             f"to '{ip_address}' with TTL {ttl}."
         )
         return
-    uri = f'dns/editByNameType/{domain}/{record_type}/'
+
+    name = sub_domain if sub_domain else domain
+
+    # check if there is a record set for the domain
+    uri = f'dns/retrieveByNameType/{domain}/{record_type}'
     if sub_domain:
-        uri += f"{sub_domain}"
-    request_body = {"content": ip_address, "ttl": int(ttl)}
+        uri += f"/{sub_domain}"
+    records = make_api_request(uri)
+    if records['status'] == 'SUCCESS':
+        if records['records']:
+            for record in records['records']:
+                if name == record['name'] and record['type'] == record_type:
+                    if record['content'] == ip_address:
+                        logging.info(f"Record already set to '{ip_address}'.")
+                        click.echo(f"Record already set to '{ip_address}'.")
+                        return
+                    else:
+                        logging.info(f"Record already set to '{record['content']}', updating to '{ip_address}'.")
+                        click.echo(f"Record already set to '{record['content']}', updating to '{ip_address}'.")
+                        uri = f'dns/edit/{domain}/{record["id"]}'
+                        request_body = {"content": ip_address, "ttl": int(ttl), "type": record_type, "name": name}
+                        make_api_request(uri, request_body, verbose=True)
+                        logging.info(f"Updated '{domain}' '{name}' '{record_type}' record to '{ip_address}' with TTL {ttl}.")
+                        return
+
+
+    uri = f'dns/create/{domain}'
+    request_body = {"content": ip_address, "ttl": int(ttl), "type": record_type, 'name': domain}
+    if sub_domain:
+        request_body['name'] = sub_domain
     make_api_request(uri, request_body, verbose=True)
     logging.info(f"Updated '{domain}' '{record_type}' record to '{ip_address}' with TTL {ttl}.")
 
