@@ -36,5 +36,5 @@ python3 porkbun_updater/main.py config
 ```
 Update your crontab with something like
 ```bash
-*/5 * * * * cd ~/porkbun_updater && source $(pdm venv activate) && python porkbun_updater/main.py set-dns-record-by-type --record-type A
+*/5 * * * * cd ~/porkbun_updater && ./cron.sh
 ```
