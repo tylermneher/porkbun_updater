@@ -1,15 +1,22 @@
 #!/bin/bash
 
+if [ -z "$HOME" ]; then
+  echo "HOME is not set"
+  exit 1
+fi
+
+if [ -e $HOME/.bashrc ]; then
+  echo "Need a ~/.bashrc file initialized with pyenv"
+  exit 1
+fi
+
+source $HOME/.bashrc
 set -x
 set -e
 
 # Force consistent and minimal locale
 export LANG=C
 export LC_ALL=C
-
-# Setup pyenv
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
 
 # Move to project dir
 cd "$HOME/porkbun_updater" || exit 1
