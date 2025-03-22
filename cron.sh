@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Fail fast on errors
+set +x
 set -e
 
 # Force consistent and minimal locale
